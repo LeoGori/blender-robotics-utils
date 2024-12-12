@@ -153,7 +153,8 @@ class InverseKinematics:
             joint_value = joint_positions[idyn_joint_idx]
 
             if joint.lock_rotation[1]:
-                joint.delta_location[1] = joint_value
+                # joint.delta_location[1] = joint_value
+                joint.lock_location[1] = int(joint_value)
             # It is a revolute joint
             else:
                 joint.rotation_euler[1] = joint_value

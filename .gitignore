@@ -1,1 +1,7 @@
 *.blend1
+script/meshes
+script/*.blend
+script/*.txt
+script/*.urdf
+script/*.stl
+script/cer

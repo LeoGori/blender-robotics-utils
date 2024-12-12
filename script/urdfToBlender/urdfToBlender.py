@@ -20,6 +20,9 @@ from bpy.types import (Panel,
                        Operator,
                        PropertyGroup,
                        )
+from configparser import ConfigParser, ExtendedInterpolation
+
+import json
 
 def createGeometricShape(iDynTree_solidshape):
     if iDynTree_solidshape.isSphere():
@@ -41,8 +44,14 @@ def rigify(path):
 
     armature_name = ""
 
+    import_config = ConfigParser(interpolation=ExtendedInterpolation())
+    import_config.read(os.path.join(os.path.dirname(__file__), "config.ini"))
+
     # Get robot name needed until https://github.com/robotology/idyntree/issues/908 is not fixed
     root = ET.parse(path).getroot()
+    print("#" * 80)
+    print(root.attrib["name"])
+    print("#" * 80)
     armature_name = root.attrib["name"]
     # Get the urdf and parse it
     dynComp = iDynTree.KinDynComputations();
@@ -55,6 +64,20 @@ def rigify(path):
 
     # Produce the reduced urdf
     model = mdlLoader.model()
+
+    joints_skip_list = import_config['joints']['skip_list'].split(', ')
+
+    if joints_skip_list:
+        num_joints = model.getNrOfJoints()
+        joints = [model.getJointName(i) for i in range(num_joints)]
+        keep_joints = [joint for joint in joints if joint not in joints_skip_list]
+        mdlLoader.loadReducedModelFromFullModel(model, keep_joints)
+        model = mdlLoader.model()
+
+    print("*" * 80)
+    print(model, type(model))
+    print(import_config.sections())
+    print("*" * 80)
 
     # Save the model in the scene
     bpy.context.scene['model_urdf'] = urdf_str
@@ -128,7 +151,10 @@ def rigify(path):
             elif ".ply" in filePath:
                 bpy.ops.import_mesh.ply(filepath=os.path.join(filePath),global_scale=0.001)
             elif ".dae" in filePath:
-                bpy.ops.wm.collada_import(filepath=os.path.join(filePath), import_units=True) #TODO check how to handle scale here !
+                print(os.path.join(filePath))
+                print(os.getcwd())
+                print(os.path.join(os.getcwd(), filePath))
+                bpy.ops.wm.collada_import(filepath=os.path.join(os.getcwd(), filePath), import_units=True) #TODO check how to handle scale here !
         else:
             # it is a basic geometry(sphere, cylinder, box)
             if not createGeometricShape(meshesInfo[model.getLinkName(link_id)]):
@@ -183,8 +209,12 @@ def rigify(path):
 
     limits = {}
     bone_list = {}
+    print("Number of joints: ", model.getNrOfJoints())
+    # joints_skip_list = import_config['joints']['skip_list'].split(', ')
+    # print(joints_skip_list)
     # Loop for defining the hierarchy of the bonse and its locations
     for idyn_joint_idx in range(model.getNrOfJoints()):
+
         parentIdx = traversal.getParentLinkIndexFromJointIndex(model,
                                                                idyn_joint_idx)
         childIdx = traversal.getChildLinkIndexFromJointIndex(model,
@@ -211,6 +241,10 @@ def rigify(path):
         min = joint.getMinPosLimit(0)
         max = joint.getMaxPosLimit(0)
         bparent = None
+        # print("#" * 80)
+        # print(parentname, bone_list.keys())
+        # print(edit_bones.keys(), type(edit_bones))
+        # print("#" * 80)
         if parentname in bone_list.keys():
             bparent = bone_list[parentname]
         else:
@@ -228,6 +262,8 @@ def rigify(path):
             else:
                 bparent = edit_bones.new(parentname)
             # TODO I have to put random value for head and tail bones otherwise bones with 0 lenght are removed
+            # Apparently, the bones with 0 length are removed by Blender when switching from edit to object mode, or viceversa
+            # as a workaround a small value is added to the tail of the bone
             bparent.head = (0,0,0)
             bparent.tail = (0,0,-0.01)
             bone_list[parentname] = bparent
@@ -248,7 +284,8 @@ def rigify(path):
         child_link_rotation   = mathutils.Matrix(child_link_transform.getRotation().toNumPy());
         # Start defining the bone like parent->child link
         bchild.head = parent_link_position
-        bchild.tail = child_link_position
+        # solved bug: add a small value to the tail of the bone so if head and tail are the same the bone is not removed
+        bchild.tail = child_link_position + (-0.01, 0, 0)
         if jointtype == "REVOLUTE":
             length = bchild.length
             if length == 0.0:
@@ -270,12 +307,19 @@ def rigify(path):
     #for k,v in meshMap.items():
     #    print(k,v)
 
-    # Now iterate over all the joints(bones) and link them to the meshes.
+    # print("#" * 80)
+    # print("Number of joints pt.2: ", model.getNrOfJoints())
+    # print(edit_bones.keys(), type(edit_bones))
+    # print(meshMap.keys(), type(meshMap))
+    # print("#" * 80)
+    # # Now iterate over all the joints(bones) and link them to the meshes.
     for idyn_joint_idx in range(model.getNrOfJoints()):
+
         # The joint should move the child link(?)
         childIdx = traversal.getChildLinkIndexFromJointIndex(model,
                                                               idyn_joint_idx)
         childname = model.getLinkName(childIdx)
+        # print(childname)
         if childname not in meshMap.keys():
             continue
         jointname = model.getJointName(idyn_joint_idx)
@@ -288,6 +332,7 @@ def rigify(path):
 
         bpy.ops.object.mode_set(mode='EDIT')
 
+        # print(edit_bones.keys(), type(edit_bones))
         edit_bones.active = edit_bones[jointname]
 
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -302,6 +347,7 @@ def rigify(path):
     # configure the bones limits
     bpy.ops.object.mode_set(mode='POSE')
     for pbone in pose_bones:
+        # print(pbone, type(pbone))
         bone_name = pbone.basename
         pbone.lock_location = (True, True, True)
         pbone.lock_rotation = (True, True, True)
@@ -329,6 +375,12 @@ def rigify(path):
             #print(bone_name, math.degrees(lim[0]), math.degrees(lim[1]))
             c.min_y = lim[0] # min
             c.max_y = lim[1] # max
+            # print(f"{pbone}, min: {lim[0]}, max: {lim[1]}")
+            pbone.ik_min_x, pbone.ik_min_z = 0, 0
+            pbone.ik_min_y = lim[0]
+            pbone.ik_max_x, pbone.ik_max_z = 0, 0
+            pbone.ik_max_y = lim[1]
+            pbone.use_ik_limit_x, pbone.use_ik_limit_y, pbone.use_ik_limit_z = True, True, True
 
         # TODO not sure if it is the right rotation_mode
         pbone.rotation_mode = 'XYZ'

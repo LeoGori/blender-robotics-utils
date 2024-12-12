@@ -41,6 +41,9 @@ from bpy.types import (Panel,
 
 list_of_links = []
 
+global robot_name
+robot_name = "R1Mk3" # R1SN003 or iCub or R1Mk3
+
 # ------------------------------------------------------------------------
 #    Structures
 # ------------------------------------------------------------------------
@@ -91,8 +94,21 @@ def move(dummy):
         if not ok_enc:
             print("I cannot read the encoders, skipping")
             return
+        
+        # joints = bpy.types.Scene.my_joints
+                # Access the annotations via the type's attribute
+        # Get the type definition (JointProperties)
+        # joint_properties_type = joints.bl_rna_get_subclass_py("JointProperties")
+
+        # # Access the annotations directly from the type definition
+        # annotations = joint_properties_type.vars()
+        # annotations = joints.vars()
+        # robot = AllJoints()
+
+        # annotations = robot.annotations
+
         for joint in range(0, ipos.getAxes()):
-            # TODO handle the name of the armature, just keep iCub for now
+            # TODO handle the name of the armature, just keep robot_name for now
             joint_name = iax.getAxisName(joint)
             if joint_name not in bpy.data.objects[mytool.my_armature].pose.bones.keys():
                 continue
@@ -100,16 +116,23 @@ def move(dummy):
             target = math.degrees(bpy.data.objects[mytool.my_armature].pose.bones[joint_name].rotation_euler[1])
             min    = joint_limits[joint][0]
             max    = joint_limits[joint][1]
-            if target < min or target > max:
-                print("The target", target, "it is outside the boundaries (", min, ",", max, "), skipping.")
-                continue
+            # if max < min:
+            #     new_max = min
+            #     min = max
+            #     max = new_max
+            # print(annotations)
+            # if target < min or target > max:
+            #     print("The target", target, "for joint", joint_name,"is outside the boundaries (", min, ",", max, "), skipping.")
+            #     continue
 
             safety_check=None
-            # The icub hands encoders are not reliable for the safety check.
-            if mytool.my_armature == "iCub" and joint > 5 :
-                safety_check = False
-            else:
-                safety_check = (abs(encs[joint] - target) > threshold)
+            # The R1SN003 hands encoders are not reliable for the safety check.
+            # if mytool.my_armature == robot_name and joint > 5 :
+            #     safety_check = False
+            # else:
+            #     safety_check = (abs(encs[joint] - target) > threshold)
+
+            safety_check = False
 
             if safety_check:
                 print("The target is too far, reaching in position control, for joint", joint_name, "by ", abs(encs[joint] - target), " degrees" )
@@ -233,14 +256,14 @@ class MyProperties(PropertyGroup):
     my_string: StringProperty(
         name="Robot",
         description=":",
-        default="icub",
+        default=robot_name,
         maxlen=1024,
         )
 
     my_armature: StringProperty(
         name="Armature name",
         description=":",
-        default="iCub",
+        default=robot_name,
         maxlen=1024,
         )
 
@@ -387,7 +410,9 @@ class WM_OT_Connect(bpy.types.Operator):
         # set the poly driver options
         options.put("robot", mytool.my_string)
         options.put("device", "remote_controlboard")
+        print(f'local port: {"/blender_controller/client/"+getattr(parts[scene.list_index], "value")}')
         options.put("local", "/blender_controller/client/"+getattr(parts[scene.list_index], "value"))
+        print(f'remote port: {"/"+mytool.my_string+"/"+getattr(parts[scene.list_index], "value")}')
         options.put("remote", "/"+mytool.my_string+"/"+getattr(parts[scene.list_index], "value"))
 
         # opening the drivers
