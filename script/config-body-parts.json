@@ -1,0 +1,8 @@
+{
+    "parts": [
+        ["torso", "Torso"],
+        ["head", "Head"],
+        ["left_arm", "Left arm"],
+        ["right_arm", "Right arm"]
+    ]
+}

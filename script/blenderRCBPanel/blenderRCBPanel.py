@@ -94,23 +94,13 @@ def move(dummy):
         if not ok_enc:
             print("I cannot read the encoders, skipping")
             return
-        
-        # joints = bpy.types.Scene.my_joints
-                # Access the annotations via the type's attribute
-        # Get the type definition (JointProperties)
-        # joint_properties_type = joints.bl_rna_get_subclass_py("JointProperties")
-
-        # # Access the annotations directly from the type definition
-        # annotations = joint_properties_type.vars()
-        # annotations = joints.vars()
-        # robot = AllJoints()
-
-        # annotations = robot.annotations
 
         for joint in range(0, ipos.getAxes()):
             # TODO handle the name of the armature, just keep robot_name for now
             joint_name = iax.getAxisName(joint)
             if joint_name not in bpy.data.objects[mytool.my_armature].pose.bones.keys():
+                print(f"Skipping the motion of the requested joint {joint_name} because it is not present in the armature of the model.")
+                print("May have you mispelled the name? Check the joint tag names in the .urdf file, or the names of the bones in the .blend file of the model")
                 continue
 
             target = math.degrees(bpy.data.objects[mytool.my_armature].pose.bones[joint_name].rotation_euler[1])
@@ -152,6 +142,7 @@ def move(dummy):
                 icm.setControlMode(joint, yarp.VOCAB_CM_POSITION_DIRECT)
                 bpy.ops.screen.animation_play()
             else:
+                print(f"move() has been called, moving joint {joint_name} to target {target}")
                 iposDir.setPosition(joint,target)
 
 
@@ -412,8 +403,10 @@ class WM_OT_Connect(bpy.types.Operator):
         options.put("device", "remote_controlboard")
         print(f'local port: {"/blender_controller/client/"+getattr(parts[scene.list_index], "value")}')
         options.put("local", "/blender_controller/client/"+getattr(parts[scene.list_index], "value"))
-        print(f'remote port: {"/"+mytool.my_string+"/"+getattr(parts[scene.list_index], "value")}')
-        options.put("remote", "/"+mytool.my_string+"/"+getattr(parts[scene.list_index], "value"))
+        # print(f'remote port: {"/"+mytool.my_string+"/"+getattr(parts[scene.list_index], "value")}')
+        # options.put("remote", "/"+mytool.my_string+"/"+getattr(parts[scene.list_index], "value"))
+        print(f'remote port: {"/r1mk3Sim/"+getattr(parts[scene.list_index], "value")}')
+        options.put("remote", "/r1mk3Sim/"+getattr(parts[scene.list_index], "value"))
 
         # opening the drivers
         print('Opening the motor driver...')
