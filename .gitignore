@@ -4,4 +4,7 @@ script/*.blend
 script/*.txt
 script/*.urdf
 script/*.stl
+*.txt
+*.webm
 script/cer
+study-r1-ergomorphing-code
