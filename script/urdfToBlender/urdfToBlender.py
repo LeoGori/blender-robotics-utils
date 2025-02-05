@@ -23,6 +23,7 @@ from bpy.types import (Panel,
 from configparser import ConfigParser, ExtendedInterpolation
 
 import json
+from ctypes import *
 
 def createGeometricShape(iDynTree_solidshape):
     if iDynTree_solidshape.isSphere():
@@ -184,9 +185,19 @@ def rigify(path):
         # root->geometry transform
         RToGtransform = RtoLinktransform * LinkToGtransform
 
+        material_values = meshesInfo[linkname].getMaterial().color().data()
+        material_values = (c_double * 10).from_address(int(material_values))
+        material_values = list(material_values)
+        
+        print(f"Link {linkname} Material: {meshesInfo[linkname].getMaterial().name(), material_values}")
+
         meshobj.location = RToGtransform.getPosition().toNumPy()
         meshobj.rotation_mode = "QUATERNION"
         meshobj.rotation_quaternion = RToGtransform.getRotation().asQuaternion()
+
+        mat = bpy.data.materials.new("PKHG")
+        mat.diffuse_color = material_values[0:4]
+        meshobj.active_material = mat
 
     # Define the armature
     # Create armature and armature object
