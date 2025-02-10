@@ -13,8 +13,11 @@ def extract_joint_names(urdf_file, separate_with_comma, get_num):
         # Filter out joints with type "fixed"
         # for name, joint_type in all_joints:
         #     print(name, joint_type)
+        
+        # remove the joints that are fixed
         joint_names = [name for name, joint_type in all_joints if joint_type != "fixed"]
         
+        # Remove joints that are part of the robot hand
         joint_names = [n for n in joint_names if not any(x in n for x in ["wheel", "pinkie", "ring", "middle", "index", "thumb", "neck"])]
 
         # Output the extracted names

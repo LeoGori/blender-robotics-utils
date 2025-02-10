@@ -40,12 +40,19 @@ https://user-images.githubusercontent.com/19833605/168836429-bf6d2f1f-cd3e-456c-
 ```
 yarpdev --device fakeMotionControl --name "/iCub/my_custom_set_of_joints" --GENERAL::Joints 3 --GENERAL::AxisName "(neck_pitch neck_roll torso_yaw)" --period 0.010
 ```
-Note that the above command line demonstrates the possibility of mixing joints belonging to different parts of the robot body (head, torso).
 
-- Connect the blenderRCB plugin to the robot part opened by fakeMotionControl. In the example above, you need to have the part `my_custom_set_of_joints` specified in the jason file loaded by blenderRCB plugin.
+or, in case the number of joints to be recorded is high, you can use `get_joint_identifiers.py` to get the automatically the number of joints inside the URDF file and their identifying names in the order they appear inside the file:
+
+```
+yarpdev --device fakeMotionControl --name "/iCub/my_custom_set_of_joints" --GENERAL::Joints $(python get_joints_identifier.py <path_to_the_urdf_file> --get_num) --GENERAL::AxisName "($(python get_joints_identifier.py <path_to_the_urdf_file>))" --period 0.010
+```
+
+Note that the above command lines demonstrate the possibility of mixing joints belonging to different parts of the robot body (head, torso).
+
+- Connect the blenderRCB plugin to the robot part opened by fakeMotionControl. In the example above, you need to have the part `my_custom_set_of_joints` specified in the json file loaded by blenderRCB plugin.
 - Read the joints position from the yarp port opened by the fakeMotion control, i.e.:
 ```
-yarp read ... //iCub/my_custom_set_of_joints/stete:o envelope &> traj.txt
+yarp read ... //iCub/my_custom_set_of_joints/state:o envelope &> traj.txt
 ``` 
 The file will have the following aspect:
 ```
