@@ -4,6 +4,13 @@ This repository contains utilities for exporting/controlling your robot in [Blen
 
 ![ezgif com-gif-maker](https://user-images.githubusercontent.com/19152494/128324719-b9bda13d-92dd-49f5-b866-8dd04b3f9d76.gif)
 
+# What's new
+- Added automatic integration of Inverse Kinematics constraints
+- Added automatic import of the colors of the meshes
+- Fixed bug that removed bones with zero length when switching mode
+- Proposes a new way to create animation based on Blender's built-in Inverse Kinematics
+- Added configuration to remove joints (useful to remove sensors encoded as bones)
+
 ## Maintainers
 
 This repository is maintained by:
