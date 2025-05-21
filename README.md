@@ -6,10 +6,11 @@ This repository contains utilities for exporting/controlling your robot in [Blen
 
 # What's new
 - Added automatic integration of Inverse Kinematics constraints
-- Added automatic import of the colors of the meshes
+- Added configuration to automatically import the software limits from the .ini files
 - Fixed bug that removed bones with zero length when switching mode
 - Proposes a new way to create animation based on Blender's built-in Inverse Kinematics
 - Added configuration to remove joints (useful to remove sensors encoded as bones)
+- Added automatic import of the colors of the meshes
 
 ## Maintainers
 

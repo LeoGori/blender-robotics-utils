@@ -24,6 +24,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 
 import json
 from ctypes import *
+import urdfToBlender.sw_limits_reader as swl
 
 def createGeometricShape(iDynTree_solidshape):
     if iDynTree_solidshape.isSphere():
@@ -67,6 +68,10 @@ def rigify(path):
     model = mdlLoader.model()
 
     joints_skip_list = import_config['joints']['skip_list'].split(', ')
+
+    sw_limits_body_parts_names = import_config['sw_limits']['body_parts'].split(', ')
+
+    body_parts_pos_sw_limits = swl.get_body_parts_sw_pos_limits(urdf_str, sw_limits_body_parts_names)
 
     if joints_skip_list:
         num_joints = model.getNrOfJoints()
@@ -249,10 +254,21 @@ def rigify(path):
         #    joint = joint.asRevoluteJoint()
         #    jointtype = "REVOLUTE"
         #    direction =	joint.getAxis(childIdx,parentIdx).getDirection().toNumPy()
+
         min = joint.getMinPosLimit(0)
         max = joint.getMaxPosLimit(0)
+        print("Joint: ", model.getJointName(idyn_joint_idx), "hardware joint angle min: ", min / math.pi * 180, "hardware joint angle max: ", max / math.pi * 180)
+
+        use_sw_limits = import_config['sw_limits'].getboolean("use_sw_limits", fallback=False)
+
+        if use_sw_limits:
+            min = body_parts_pos_sw_limits[model.getJointName(idyn_joint_idx)][0] * math.pi / 180.0
+            max = body_parts_pos_sw_limits[model.getJointName(idyn_joint_idx)][1] * math.pi / 180.0
+            print("Joint: ", model.getJointName(idyn_joint_idx), "software joint angle min: ", min / math.pi * 180, "software joint angle max: ", max / math.pi * 180)
+            print("USING SOFTWARE LIMITS FOR JOINT: ", model.getJointName(idyn_joint_idx))
+
         bparent = None
-        # print("#" * 80)
+        print("#" * 80)
         # print(parentname, bone_list.keys())
         # print(edit_bones.keys(), type(edit_bones))
         # print("#" * 80)
